@@ -1,0 +1,86 @@
+# Default profile (local development and testing)
+server:
+  port: 8081  # Port for User Service
+
+spring:
+  profiles:
+    active: default
+
+---
+spring:
+  config:
+    activate:
+      on-profile: default
+  datasource:
+    url: jdbc:postgresql://localhost:5432/userdb  # Dedicated database for User Service
+    username: postgres
+    password: Ab123456
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      auto-commit: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false  # Disable open-in-view to avoid potential performance issues
+
+# Logging level for the User Service
+logging:
+  level:
+    com.jack.userservice: INFO
+
+# SpringDoc settings for API documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui-custom.html
+
+# Security settings specific to the User Service
+app:
+  jwtSecret: Xb34fJd9kPbvmJc84mDkV9b3Xb4fJd9kPbvmJc84mDkV9b3Xb34fJd9kPbvmJc84
+  jwtExpirationMs: 3600000
+
+security:
+  authentication:
+    enabled: true  # Enable authentication as the User Service typically manages user authentication
+
+# Docker profile (for running in containers)
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://db:5432/userdb  # Database connection for Docker environment
+    username: postgres
+    password: Ab123456
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      auto-commit: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false  # Disable open-in-view in Docker as well
+
+# Logging level for the User Service
+logging:
+  level:
+    com.jack.userservice: INFO
+
+# SpringDoc settings for API documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui-custom.html
+
+# Security settings specific to the User Service
+app:
+  jwtSecret: Xb34fJd9kPbvmJc84mDkV9b3Xb4fJd9kPbvmJc84mDkV9b3Xb34fJd9kPbvmJc84
+  jwtExpirationMs: 3600000
+
+security:
+  authentication:
+    enabled: true  # Enable authentication as the User Service typically manages user authentication
