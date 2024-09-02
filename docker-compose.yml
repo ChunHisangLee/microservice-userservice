@@ -2,11 +2,11 @@ services:
   db:
     image: postgres:latest
     environment:
-      POSTGRES_DB: postgres
+      POSTGRES_DB: userdb  # Change this to the name of your application's database
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: Ab123456
     ports:
-      - "5433:5432"  # Change the host port to 5433 or any other available port
+      - "5433:5432"
     networks:
       - assignment-network
     healthcheck:
@@ -22,7 +22,7 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/userdb  # Reflect the change in database name here
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: Ab123456
       SPRING_PROFILES_ACTIVE: docker
