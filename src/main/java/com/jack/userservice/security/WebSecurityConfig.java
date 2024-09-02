@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -64,22 +63,20 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-        logger.info("Creating AuthenticationManager bean");
-        AuthenticationManager authenticationManager = http.getSharedObject(AuthenticationManagerBuilder.class)
-                .build();
-        logger.info("AuthenticationManager bean created successfully");
-        return authenticationManager;
+    public DaoAuthenticationProvider daoAuthenticationProvider() {
+        logger.info("Creating DaoAuthenticationProvider bean");
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(customUserDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
-        logger.info("Creating AuthenticationProvider bean");
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setPasswordEncoder(passwordEncoder());
-        authProvider.setUserDetailsService(customUserDetailsService);
-        logger.info("AuthenticationProvider bean created successfully");
-        return authProvider;
+    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+        logger.info("Creating AuthenticationManager bean");
+        AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
+        authenticationManagerBuilder.authenticationProvider(daoAuthenticationProvider());
+        return authenticationManagerBuilder.build();
     }
 
     @Bean
