@@ -8,24 +8,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: Ab123456
     ports:
-      - "5432:5432"
+      - "5433:5432"  # Change the host port to 5433 or any other available port
     networks:
       - assignment-network
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "postgres" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:latest
-    command: [ "redis-server", "--requirepass", "Ab123456" ]
-    ports:
-      - "6379:6379"  # Exposing Redis on port 6379
-    networks:
-      - assignment-network
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-a", "Ab123456", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -35,19 +22,14 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "8081:8081"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: Ab123456
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      SPRING_REDIS_PASSWORD: Ab123456
       SPRING_PROFILES_ACTIVE: docker
     depends_on:
       db:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     networks:
       - assignment-network
