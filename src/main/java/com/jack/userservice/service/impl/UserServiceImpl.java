@@ -2,10 +2,12 @@ package com.jack.userservice.service.impl;
 
 import com.jack.userservice.entity.Users;
 import com.jack.userservice.exception.CustomErrorException;
+import com.jack.userservice.message.WalletCreationMessage;
 import com.jack.userservice.repository.UsersRepository;
 import com.jack.userservice.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,10 +23,12 @@ public class UserServiceImpl implements UserService {
 
     private final UsersRepository usersRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RabbitTemplate rabbitTemplate;
 
-    public UserServiceImpl(UsersRepository usersRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UsersRepository usersRepository, PasswordEncoder passwordEncoder, RabbitTemplate rabbitTemplate) {
         this.usersRepository = usersRepository;
         this.passwordEncoder = passwordEncoder;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     @Override
@@ -47,6 +51,12 @@ public class UserServiceImpl implements UserService {
         // Save the user and cascade save the wallet
         Users savedUser = usersRepository.save(users);
         logger.info("User with email: {} registered successfully with ID: {}", savedUser.getEmail(), savedUser.getId());
+
+        // Send a message to RabbitMQ for wallet creation
+        WalletCreationMessage walletMessage = new WalletCreationMessage(savedUser.getId(), 1000.0);
+        rabbitTemplate.convertAndSend("walletExchange", "walletRoutingKey", (Object) walletMessage);  // Explicit casting to resolve ambiguity
+        logger.info("Wallet creation message sent for user ID: {}", savedUser.getId());
+
         return savedUser;
     }
 

@@ -1,4 +1,4 @@
-# Use a smaller OpenJDK image
+# Use a smaller OpenJDK image for better performance and smaller size
 FROM openjdk:21-jdk-slim
 
 # Maintainer information
@@ -17,10 +17,14 @@ EXPOSE 8081
 ENV SPRING_DATASOURCE_URL="jdbc:postgresql://db:5432/userdb" \
     SPRING_DATASOURCE_USERNAME="postgres" \
     SPRING_DATASOURCE_PASSWORD="Ab123456" \
-    APP_JWT_SECRET="Xb34fJd9kPbvmJc84mDkV9b3Xb4fJd9kPbvmJc84mDkV9b3Xb34fJd9kPbvmJc84" \
+    APP_JWT_SECRET="Xb34fJd9kPbvmJc84mDkV9b3Xb34fJd9kPbvmJc84mDkV9b3Xb34fJd9kPbvmJc84" \
     APP_JWT_EXPIRATION_MS="3600000" \
     SECURITY_AUTHENTICATION_ENABLED="false" \
+    SPRING_RABBITMQ_HOST="rabbitmq" \
+    SPRING_RABBITMQ_PORT="5672" \
+    SPRING_RABBITMQ_USERNAME="guest" \
+    SPRING_RABBITMQ_PASSWORD="guest" \
     SPRING_PROFILES_ACTIVE="docker"
 
-# Run the Spring Boot application
+# Use exec form of CMD to ensure signals are received by the JVM process
 CMD ["java", "-jar", "/app/user-service.jar"]

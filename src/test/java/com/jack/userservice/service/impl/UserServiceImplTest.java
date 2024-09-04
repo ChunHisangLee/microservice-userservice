@@ -1,23 +1,23 @@
-package com.jack.userservice.service.mpl;
+package com.jack.userservice.service.impl;
 
 import com.jack.userservice.entity.Users;
 import com.jack.userservice.exception.CustomErrorException;
+import com.jack.userservice.message.WalletCreationMessage;
 import com.jack.userservice.repository.UsersRepository;
-import com.jack.userservice.service.impl.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,6 +28,9 @@ class UserServiceImplTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private RabbitTemplate rabbitTemplate;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -60,6 +63,13 @@ class UserServiceImplTest {
         verify(usersRepository, times(1)).findByEmail(anyString());
         verify(passwordEncoder, times(1)).encode(anyString());
         verify(usersRepository, times(1)).save(any(Users.class));
+
+        // Verify RabbitMQ interaction
+        verify(rabbitTemplate, times(1)).convertAndSend(
+                eq("walletExchange"),
+                eq("walletRoutingKey"),
+                any(WalletCreationMessage.class)
+        );
     }
 
     @Test
@@ -70,8 +80,17 @@ class UserServiceImplTest {
         // Act & Assert
         CustomErrorException exception = assertThrows(CustomErrorException.class, () -> userService.registerUser(user));
         assertEquals(HttpStatus.CONFLICT.value(), exception.getStatusCode());
+
+        // Verify that no user was saved
         verify(usersRepository, times(1)).findByEmail(anyString());
         verify(usersRepository, never()).save(any(Users.class));
+
+        // Verify that RabbitMQ was not called
+        verify(rabbitTemplate, never()).convertAndSend(
+                any(String.class),  // exchange
+                any(String.class),  // routingKey
+                any(Object.class)   // message
+        );
     }
 
     @Test
