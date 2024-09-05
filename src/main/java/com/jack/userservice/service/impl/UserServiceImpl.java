@@ -7,6 +7,7 @@ import com.jack.userservice.repository.UsersRepository;
 import com.jack.userservice.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -54,8 +55,14 @@ public class UserServiceImpl implements UserService {
 
         // Send a message to RabbitMQ for wallet creation
         WalletCreationMessage walletMessage = new WalletCreationMessage(savedUser.getId(), 1000.0);
-        rabbitTemplate.convertAndSend("walletExchange", "walletRoutingKey", (Object) walletMessage);  // Explicit casting to resolve ambiguity
-        logger.info("Wallet creation message sent for user ID: {}", savedUser.getId());
+
+        try {
+            rabbitTemplate.convertAndSend("walletExchange", "walletRoutingKey", walletMessage);
+            logger.info("Wallet creation message sent for user ID: {}", savedUser.getId());
+        } catch (AmqpException e) {
+            logger.error("Failed to send message to RabbitMQ: {}", e.getMessage());
+            throw e;
+        }
 
         return savedUser;
     }

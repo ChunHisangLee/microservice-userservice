@@ -12,7 +12,7 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue walletCreationQueue() {
-        return new Queue("walletCreationQueue", false);
+        return new Queue("walletCreationQueue", true);
     }
 
     @Bean

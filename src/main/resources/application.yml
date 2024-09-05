@@ -69,6 +69,11 @@ spring:
       ddl-auto: update
     show-sql: true
     open-in-view: false  # Disable open-in-view in Docker as well
+  rabbitmq:
+    host: rabbitmq  # RabbitMQ host in Docker (referring to service name)
+    port: 5672
+    username: guest
+    password: guest
 
 # Logging level for the User Service
 logging:
