@@ -1,5 +1,6 @@
 package com.jack.userservice.service.impl;
 
+import com.jack.userservice.config.RabbitMQConfig;
 import com.jack.userservice.entity.Users;
 import com.jack.userservice.exception.CustomErrorException;
 import com.jack.userservice.message.WalletCreationMessage;
@@ -64,10 +65,9 @@ class UserServiceImplTest {
         verify(passwordEncoder, times(1)).encode(anyString());
         verify(usersRepository, times(1)).save(any(Users.class));
 
-        // Verify RabbitMQ interaction
+        // Verify RabbitMQ interaction with the correct queue
         verify(rabbitTemplate, times(1)).convertAndSend(
-                eq("walletExchange"),
-                eq("walletRoutingKey"),
+                eq(RabbitMQConfig.USER_CREATED_QUEUE), // Correct queue from RabbitMQConfig
                 any(WalletCreationMessage.class)
         );
     }
@@ -87,9 +87,8 @@ class UserServiceImplTest {
 
         // Verify that RabbitMQ was not called
         verify(rabbitTemplate, never()).convertAndSend(
-                any(String.class),  // exchange
-                any(String.class),  // routingKey
-                any(Object.class)   // message
+                any(String.class),  // queue
+                any(WalletCreationMessage.class)   // message
         );
     }
 

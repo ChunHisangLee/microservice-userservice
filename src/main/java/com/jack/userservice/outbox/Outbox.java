@@ -1,11 +1,12 @@
 package com.jack.userservice.outbox;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 @Entity
 @Table(name = "outbox", indexes = {
@@ -14,8 +15,6 @@ import java.util.Objects;
 })
 @Getter
 @Setter
-@Builder
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class Outbox {
@@ -24,30 +23,16 @@ public class Outbox {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Event type cannot be blank")
     @Column(nullable = false)
     private String eventType;
 
-    @NotBlank(message = "Payload cannot be blank")
     @Lob
     @Column(nullable = false)
-    private String payload; // The message payload (usually serialized JSON)
+    private String payload;
 
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(nullable = false)
-    private boolean processed = false; // Whether the message has been processed
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Outbox outbox)) return false;
-        return Objects.equals(id, outbox.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
+    private boolean processed = false;
 }

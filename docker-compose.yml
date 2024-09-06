@@ -1,3 +1,4 @@
+
 services:
   db:
     image: postgres:latest
@@ -8,11 +9,11 @@ services:
     ports:
       - "5433:5432"
     networks:
-      - assignment-network
+      - microservice-network
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 10s
-      timeout: 5s
+      timeout: 10s
       retries: 5
 
   userservice:
@@ -29,27 +30,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
     networks:
-      - assignment-network
-
-  rabbitmq:
-    image: rabbitmq:management
-    ports:
-      - "5672:5672"
-      - "15672:15672"  # Management UI
-    networks:
-      - assignment-network
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    healthcheck:
-      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - microservice-network
 
 networks:
-  assignment-network:
+  microservice-network:
     external: true

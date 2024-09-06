@@ -2,6 +2,7 @@ package com.jack.userservice.outbox;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jack.userservice.message.WalletCreationMessage;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -9,18 +10,35 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class OutboxProcessorService {
+public class OutboxService {
 
     private final OutboxRepository outboxRepository;
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
 
-    public OutboxProcessorService(OutboxRepository outboxRepository, RabbitTemplate rabbitTemplate, ObjectMapper objectMapper) {
+    public OutboxService(OutboxRepository outboxRepository, RabbitTemplate rabbitTemplate, ObjectMapper objectMapper) {
         this.outboxRepository = outboxRepository;
         this.rabbitTemplate = rabbitTemplate;
         this.objectMapper = objectMapper;
     }
 
+    // Save an Outbox entry from DTO
+    public Outbox saveOutbox(OutboxDTO outboxDTO) {
+        // Convert DTO to Entity
+        Outbox outboxEntity = OutboxMapper.mapToEntity(outboxDTO);
+        // Save the entity to the database
+        return outboxRepository.save(outboxEntity);
+    }
+
+    // Fetch an Outbox entry and return a DTO
+    public OutboxDTO getOutboxById(Long id) {
+        Outbox outboxEntity = outboxRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Outbox entry not found"));
+        // Convert Entity to DTO
+        return OutboxMapper.mapToDTO(outboxEntity);
+    }
+
+    // Scheduled method to process unprocessed messages in the Outbox
     @Scheduled(fixedRate = 5000) // Check the outbox every 5 seconds
     public void processOutbox() {
         List<Outbox> unprocessedMessages = outboxRepository.findByProcessedFalse();
