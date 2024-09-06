@@ -8,6 +8,7 @@ public class ErrorMessages {
     // General Status Messages
     public static final String NOT_FOUND_STATUS = "Not Found";
     public static final String CONFLICT_STATUS = "Conflict";
+    public static final String INTERNAL_SERVER_ERROR_STATUS = "Internal Server Error";
     public static final String UNAUTHORIZED_STATUS = "Unauthorized";
 
     // User-related Error Messages
@@ -15,6 +16,7 @@ public class ErrorMessages {
     public static final String EMAIL_ALREADY_REGISTERED = "Email already registered. Try to log in or register with another email.";
     public static final String EMAIL_ALREADY_REGISTERED_BY_ANOTHER_USER = "Email already registered by another user.";
     public static final String INVALID_EMAIL_OR_PASSWORD = "Invalid email or password.";
+    public static final String FAILED_WALLET_CREATION = "Failed to initiate wallet creation. Please try again.";
 
     // API Paths for Error Context
     public static final String GET_USER_API_PATH = "GET /api/users/";

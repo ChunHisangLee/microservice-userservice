@@ -1,10 +1,12 @@
 package com.jack.userservice.service.impl;
 
+import com.jack.userservice.config.RabbitMQConfig;
 import com.jack.userservice.entity.Users;
 import com.jack.userservice.exception.CustomErrorException;
 import com.jack.userservice.message.WalletCreationMessage;
 import com.jack.userservice.repository.UsersRepository;
 import com.jack.userservice.service.UserService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.AmqpException;
@@ -12,38 +14,26 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
 import static com.jack.userservice.constants.ErrorMessages.*;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private final UsersRepository usersRepository;
     private final PasswordEncoder passwordEncoder;
     private final RabbitTemplate rabbitTemplate;
 
-    public UserServiceImpl(UsersRepository usersRepository, PasswordEncoder passwordEncoder, RabbitTemplate rabbitTemplate) {
-        this.usersRepository = usersRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.rabbitTemplate = rabbitTemplate;
-    }
-
+    @Transactional
     @Override
     public Users registerUser(Users users) {
         logger.info("Attempting to register user with email: {}", users.getEmail());
-        if (usersRepository.findByEmail(users.getEmail()).isPresent()) {
-            logger.error("Email {} is already registered.", users.getEmail());
-            throw new CustomErrorException(
-                    HttpStatus.CONFLICT.value(),
-                    CONFLICT_STATUS,
-                    EMAIL_ALREADY_REGISTERED,
-                    POST_USER_API_PATH
-            );
-        }
+        validateUserEmail(users.getEmail());
 
         // Encode the user's password
         users.setPassword(passwordEncoder.encode(users.getPassword()));
@@ -54,15 +44,8 @@ public class UserServiceImpl implements UserService {
         logger.info("User with email: {} registered successfully with ID: {}", savedUser.getEmail(), savedUser.getId());
 
         // Send a message to RabbitMQ for wallet creation
-        WalletCreationMessage walletMessage = new WalletCreationMessage(savedUser.getId(), 1000.0);
-
-        try {
-            rabbitTemplate.convertAndSend("walletExchange", "walletRoutingKey", walletMessage);
-            logger.info("Wallet creation message sent for user ID: {}", savedUser.getId());
-        } catch (AmqpException e) {
-            logger.error("Failed to send message to RabbitMQ: {}", e.getMessage());
-            throw e;
-        }
+        double initialBalance = 1000.0;
+        sendWalletCreationMessage(savedUser.getId(), initialBalance);
 
         return savedUser;
     }
@@ -70,15 +53,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public Optional<Users> updateUser(Long id, Users users) {
         logger.info("Attempting to update user with ID: {}", id);
-        Users existingUser = usersRepository.findById(id).orElseThrow(() -> {
-            logger.error("User with ID: {} not found for update.", id);
-            return new CustomErrorException(
-                    HttpStatus.NOT_FOUND.value(),
-                    NOT_FOUND_STATUS,
-                    USER_NOT_FOUND,
-                    PUT_USER_API_PATH + id
-            );
-        });
+        Users existingUser = findUserById(id);
 
         if (usersRepository.findByEmail(users.getEmail()).filter(user -> !user.getId().equals(id)).isPresent()) {
             logger.error("Email {} is already registered by another user.", users.getEmail());
@@ -92,7 +67,6 @@ public class UserServiceImpl implements UserService {
 
         existingUser.setName(users.getName());
         existingUser.setEmail(users.getEmail());
-        logger.debug("User details updated for user with ID: {}", id);
 
         if (users.getPassword() != null && !users.getPassword().isEmpty()) {
             existingUser.setPassword(passwordEncoder.encode(users.getPassword()));
@@ -107,15 +81,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void deleteUser(Long id) {
         logger.info("Attempting to delete user with ID: {}", id);
-        Users user = usersRepository.findById(id).orElseThrow(() -> {
-            logger.error("User with ID: {} not found for deletion.", id);
-            return new CustomErrorException(
-                    HttpStatus.NOT_FOUND.value(),
-                    NOT_FOUND_STATUS,
-                    USER_NOT_FOUND,
-                    DELETE_USER_API_PATH + id
-            );
-        });
+        Users user = findUserById(id);
         usersRepository.delete(user);
         logger.info("User with ID: {} deleted successfully.", id);
     }
@@ -123,15 +89,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public Users login(String email, String password) {
         logger.info("User login attempt with email: {}", email);
-        Users user = usersRepository.findByEmail(email).orElseThrow(() -> {
-            logger.error("Invalid email or password for email: {}", email);
-            return new CustomErrorException(
-                    HttpStatus.UNAUTHORIZED.value(),
-                    UNAUTHORIZED_STATUS,
-                    INVALID_EMAIL_OR_PASSWORD,
-                    POST_LOGIN_API_PATH
-            );
-        });
+        Users user = findUserByEmail(email);
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
             logger.error("Invalid password for email: {}", email);
@@ -150,15 +108,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public Optional<Users> getUserById(Long id) {
         logger.info("Fetching user by ID: {}", id);
-        return Optional.ofNullable(usersRepository.findById(id).orElseThrow(() -> {
-            logger.error("User with ID: {} not found.", id);
-            return new CustomErrorException(
-                    HttpStatus.NOT_FOUND.value(),
-                    NOT_FOUND_STATUS,
-                    USER_NOT_FOUND,
-                    GET_USER_API_PATH + id
-            );
-        }));
+        return Optional.of(findUserById(id));
     }
 
     @Override
@@ -171,5 +121,58 @@ public class UserServiceImpl implements UserService {
     public boolean verifyPassword(String rawPassword, String encodedPassword) {
         logger.debug("Verifying password for authentication.");
         return passwordEncoder.matches(rawPassword, encodedPassword);
+    }
+
+    private void validateUserEmail(String email) {
+        if (usersRepository.findByEmail(email).isPresent()) {
+            logger.error("Email {} is already registered.", email);
+            throw new CustomErrorException(
+                    HttpStatus.CONFLICT.value(),
+                    CONFLICT_STATUS,
+                    EMAIL_ALREADY_REGISTERED,
+                    POST_USER_API_PATH
+            );
+        }
+    }
+
+    private Users findUserById(Long id) {
+        return usersRepository.findById(id).orElseThrow(() -> {
+            logger.error("User with ID: {} not found.", id);
+            return new CustomErrorException(
+                    HttpStatus.NOT_FOUND.value(),
+                    NOT_FOUND_STATUS,
+                    USER_NOT_FOUND,
+                    GET_USER_API_PATH + id
+            );
+        });
+    }
+
+    private Users findUserByEmail(String email) {
+        return usersRepository.findByEmail(email).orElseThrow(() -> {
+            logger.error("Invalid email or password for email: {}", email);
+            return new CustomErrorException(
+                    HttpStatus.UNAUTHORIZED.value(),
+                    UNAUTHORIZED_STATUS,
+                    INVALID_EMAIL_OR_PASSWORD,
+                    POST_LOGIN_API_PATH
+            );
+        });
+    }
+
+    private void sendWalletCreationMessage(Long userId, Double initialBalance) {
+        WalletCreationMessage walletMessage = new WalletCreationMessage(userId, initialBalance);
+
+        try {
+            rabbitTemplate.convertAndSend(RabbitMQConfig.USER_CREATED_QUEUE, walletMessage);
+            logger.info("Wallet creation message sent for user ID: {}", userId);
+        } catch (AmqpException e) {
+            logger.error("Failed to send message to RabbitMQ: {}", e.getMessage());
+            throw new CustomErrorException(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    INTERNAL_SERVER_ERROR_STATUS,
+                    FAILED_WALLET_CREATION,
+                    POST_USER_API_PATH
+            );
+        }
     }
 }

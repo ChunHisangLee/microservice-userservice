@@ -1,27 +1,23 @@
 package com.jack.userservice.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
 
+    public static final String USER_CREATED_QUEUE = "user-created-queue";
+
     @Bean
-    public Queue walletCreationQueue() {
-        return new Queue("walletCreationQueue", true);
+    public Queue userCreatedQueue() {
+        return new Queue(USER_CREATED_QUEUE, false);
     }
 
     @Bean
-    public DirectExchange walletExchange() {
-        return new DirectExchange("walletExchange");
-    }
-
-    @Bean
-    public Binding binding(Queue walletCreationQueue, DirectExchange walletExchange) {
-        return BindingBuilder.bind(walletCreationQueue).to(walletExchange).with("walletRoutingKey");
+    public RabbitTemplate rabbitTemplate() {
+        // Autowired ConnectionFactory is automatically configured via Spring Boot AMQP starter
+        return new RabbitTemplate();
     }
 }
