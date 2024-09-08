@@ -12,11 +12,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.jack.userservice.constants.ErrorMessages.*;
 
@@ -121,6 +125,18 @@ public class UserServiceImpl implements UserService {
     public boolean verifyPassword(String rawPassword, String encodedPassword) {
         logger.debug("Verifying password for authentication.");
         return passwordEncoder.matches(rawPassword, encodedPassword);
+    }
+
+    @Override
+    public UserDetails loadUserByEmail(String email) {
+        Users user = usersRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                user.getRoles().stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList())
+        );
     }
 
     private void validateUserEmail(String email) {

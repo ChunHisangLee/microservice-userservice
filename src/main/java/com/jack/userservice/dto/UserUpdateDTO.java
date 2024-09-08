@@ -7,8 +7,8 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UsersDTO {
-    private Long id;
+public class UserUpdateDTO {
     private String name;
     private String email;
+    private String password; // Optional during updates
 }

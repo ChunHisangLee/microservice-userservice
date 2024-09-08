@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.Objects;
+import java.util.Set;
 
 @Entity
 @Table(name = "users", indexes = {
@@ -38,6 +39,12 @@ public class Users {
     @Size(min = 6, message = "Password must be at least 6 characters long")
     @Column(nullable = false)
     private String password;
+
+    // Adding roles field
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role")
+    private Set<String> roles;
 
     @Override
     public boolean equals(Object o) {
