@@ -1,5 +1,6 @@
 package com.jack.userservice.controller;
 
+import com.jack.userservice.dto.UserRegistrationDTO;
 import com.jack.userservice.dto.UsersDTO;
 import com.jack.userservice.entity.Users;
 import com.jack.userservice.exception.CustomErrorException;
@@ -11,7 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,29 +28,38 @@ public class UserController {
     private final UserService userService;
     private final UsersMapper usersMapper;
     private final JwtTokenProvider jwtTokenProvider;
-    private final AuthenticationManager authenticationManager;
 
-    public UserController(UserService userService, UsersMapper usersMapper, JwtTokenProvider jwtTokenProvider,
-                          AuthenticationManager authenticationManager) {
+    public UserController(UserService userService, UsersMapper usersMapper, JwtTokenProvider jwtTokenProvider) {
         this.userService = userService;
         this.usersMapper = usersMapper;
         this.jwtTokenProvider = jwtTokenProvider;
-        this.authenticationManager = authenticationManager;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UsersDTO> registerUser(@Valid @RequestBody UsersDTO usersDTO) {
-        logger.info("Registering new user with email: {}", usersDTO.getEmail());
-        Users users = usersMapper.toEntity(usersDTO);
+    public ResponseEntity<UsersDTO> registerUser(@Valid @RequestBody UserRegistrationDTO userRegistrationDTO) {
+        logger.info("Registering new user with email: {}", userRegistrationDTO.getEmail());
+        Users users = usersMapper.toEntity(userRegistrationDTO);
         Users createdUser = userService.registerUser(users);
         logger.info("User registered successfully with ID: {}", createdUser.getId());
-        return ResponseEntity.ok(usersMapper.toDto(createdUser));
+
+        // Load the registered user's details
+        UserDetails userDetails = userService.loadUserByEmail(createdUser.getEmail());
+
+        // Create an Authentication object using UserDetails
+        Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
+        // Generate JWT Token using the authentication object
+        String token = jwtTokenProvider.generateToken(authentication);
+        logger.info("JWT Token generated for registered user: {}", createdUser.getEmail());
+
+        UsersDTO responseDto = usersMapper.toDto(createdUser);
+        return ResponseEntity.ok(responseDto);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UsersDTO> updateUser(@PathVariable Long id, @Valid @RequestBody UsersDTO usersDTO) {
+    public ResponseEntity<UsersDTO> updateUser(@PathVariable Long id, @Valid @RequestBody UserRegistrationDTO UserRegistrationDTO) {
         logger.info("Updating user with ID: {}", id);
-        Users users = usersMapper.toEntity(usersDTO);
+        Users users = usersMapper.toEntity(UserRegistrationDTO);
         Users updatedUser = userService.updateUser(id, users)
                 .orElseThrow(() -> {
                     logger.error("User with ID: {} not found for update.", id);
@@ -87,8 +98,10 @@ public class UserController {
         logger.info("User with ID: {} found.", id);
         return ResponseEntity.ok(usersMapper.toDto(user));
     }
-    @GetMapping("/api/users/email/{email}")
+
+    @GetMapping("/email/{email}")
     public ResponseEntity<UserDetails> getUserByEmail(@PathVariable String email) {
+        logger.info("Fetching user with email: {}", email);
         UserDetails user = userService.loadUserByEmail(email);
         return ResponseEntity.ok(user);
     }

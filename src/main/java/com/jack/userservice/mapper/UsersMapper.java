@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class UsersMapper {
 
-    // Map Users entity to UsersDTO (for general use without password)
+    // Map Users entity to UsersDTO (for general use without a password)
     public UsersDTO toDto(Users users) {
         return UsersDTO.builder()
                 .id(users.getId())
@@ -27,13 +27,11 @@ public class UsersMapper {
                 .build();
     }
 
-    // Map UserUpdateDTO to Users entity (for updates, handle optional password)
-    public Users toEntity(UserUpdateDTO userUpdateDTO, Users existingUser) {
-        existingUser.setName(userUpdateDTO.getName());
-        existingUser.setEmail(userUpdateDTO.getEmail());
+    // Map from UserUpdateDTO to User entity (for profile updates)
+    public void updateUserFromDto(UserUpdateDTO userUpdateDTO, Users users) {
+        users.setName(userUpdateDTO.getName());
         if (userUpdateDTO.getPassword() != null && !userUpdateDTO.getPassword().isEmpty()) {
-            existingUser.setPassword(userUpdateDTO.getPassword()); // Password is updated if provided
+            users.setPassword(userUpdateDTO.getPassword()); // Ensure password encoding in the service layer
         }
-        return existingUser;
     }
 }
