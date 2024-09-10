@@ -1,13 +1,10 @@
 package com.jack.userservice.controller;
 
-import com.jack.userservice.dto.AuthRequestDTO;
-import com.jack.userservice.dto.UserRegistrationDTO;
-import com.jack.userservice.dto.UserResponseDTO;
-import com.jack.userservice.dto.UsersDTO;
+import com.jack.userservice.client.AuthServiceClient;
+import com.jack.userservice.dto.*;
 import com.jack.userservice.entity.Users;
 import com.jack.userservice.exception.CustomErrorException;
 import com.jack.userservice.mapper.UsersMapper;
-import com.jack.userservice.security.JwtAuthenticationResponse;
 import com.jack.userservice.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,8 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
@@ -33,15 +28,12 @@ public class UserController {
 
     private final UserService userService;
     private final UsersMapper usersMapper;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final AuthenticationManager authenticationManager;
+    private final AuthServiceClient authServiceClient;
 
-    public UserController(UserService userService, UsersMapper usersMapper, JwtTokenProvider jwtTokenProvider,
-                          AuthenticationManager authenticationManager) {
+    public UserController(UserService userService, UsersMapper usersMapper, AuthServiceClient authServiceClient) {
         this.userService = userService;
         this.usersMapper = usersMapper;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.authenticationManager = authenticationManager;
+        this.authServiceClient = authServiceClient;
     }
 
     @PostMapping("/register")
@@ -70,6 +62,7 @@ public class UserController {
                             GET_USER_API_PATH + id
                     );
                 });
+
         logger.info("User with ID: {} updated successfully.", id);
         return ResponseEntity.ok(usersMapper.toDto(updatedUser));
     }
@@ -95,31 +88,27 @@ public class UserController {
                             GET_USER_API_PATH + id
                     );
                 });
+
         logger.info("User with ID: {} found.", id);
         return ResponseEntity.ok(usersMapper.toDto(user));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<JwtAuthenticationResponse> login(@RequestBody UsersDTO loginRequest) {
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody AuthRequestDTO loginRequest) {
         logger.info("User login attempt with email: {}", loginRequest.getEmail());
-        try {
-            // Authenticate the user using the AuthenticationManager
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 
-            // Set the authentication in the SecurityContext
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            // Generate JWT token
-            String token = jwtTokenProvider.generateToken(authentication);
-
-            logger.info("User with email: {} logged in successfully.", loginRequest.getEmail());
-            return ResponseEntity.ok(new JwtAuthenticationResponse(token));
-        } catch (RuntimeException ex) {
+        if (!userService.verifyPassword(loginRequest.getEmail(), loginRequest.getPassword())) {
             logger.error("Invalid credentials for email: {}", loginRequest.getEmail());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
+
+        // If credentials are valid, request JWT token from auth-service
+        AuthResponseDTO authResponse = authServiceClient.login(loginRequest);
+        logger.info("User with email: {} logged in successfully.", loginRequest.getEmail());
+        // Return the JWT token received from auth-service
+        return ResponseEntity.ok(authResponse);
     }
+
 
     @GetMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {

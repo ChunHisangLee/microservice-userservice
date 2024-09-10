@@ -10,4 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AuthResponseDTO {
     private String token;
+    private String tokenType;  // Typically "Bearer"
+    private Long expiresIn;  // Optional: Token expiration time (in milliseconds)
 }
