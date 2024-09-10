@@ -1,4 +1,3 @@
-# Default profile (local development and testing)
 server:
   port: 8081  # Port for User Service
 
@@ -27,6 +26,12 @@ spring:
     username: guest
     password: guest
 
+# Custom application-specific settings
+app:
+  rabbitmq:
+    queues:
+      wallet-creation: walletCreationQueue
+
 # Logging level for the User Service
 logging:
   level:
@@ -38,15 +43,6 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui-custom.html
-
-# Security settings specific to the User Service
-app:
-
-
-
-security:
-  authentication:
-    enabled: false  # Enable authentication as the User Service typically manages user authentication
 
 # Docker profile (for running in containers)
 ---
@@ -75,6 +71,12 @@ spring:
     username: guest
     password: guest
 
+# Custom application-specific settings
+app:
+  rabbitmq:
+    queues:
+      wallet-creation: walletCreationQueue
+
 # Logging level for the User Service
 logging:
   level:
@@ -86,12 +88,3 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui-custom.html
-
-# Security settings specific to the User Service
-app:
-
-
-
-security:
-  authentication:
-    enabled: false  # Enable authentication as the User Service typically manages user authentication

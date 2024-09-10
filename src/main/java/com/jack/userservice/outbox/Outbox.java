@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "outbox", indexes = {
-        @Index(name = "idx_event_type", columnList = "eventType"),
+        @Index(name = "idx_aggregate_type", columnList = "aggregate_type"),
         @Index(name = "idx_processed", columnList = "processed")
 })
 @Getter
@@ -23,16 +23,22 @@ public class Outbox {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String eventType;
+    @Column(name = "aggregate_id", nullable = false)
+    private Long aggregateId;
+
+    @Column(name = "aggregate_type", nullable = false)
+    private String aggregateType;
 
     @Lob
     @Column(nullable = false)
     private String payload;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(nullable = false)
     private boolean processed = false;
+
+    @Column(name = "processed_at")
+    private LocalDateTime processedAt;
 }

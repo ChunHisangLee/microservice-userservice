@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jack.userservice.message.WalletCreationMessage;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -16,6 +18,9 @@ public class OutboxService {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
 
+    @Value("${app.rabbitmq.queues.wallet-creation}")
+    private String walletCreationQueue;
+
     public OutboxService(OutboxRepository outboxRepository, RabbitTemplate rabbitTemplate, ObjectMapper objectMapper) {
         this.outboxRepository = outboxRepository;
         this.rabbitTemplate = rabbitTemplate;
@@ -23,11 +28,10 @@ public class OutboxService {
     }
 
     // Save an Outbox entry from DTO
-    public Outbox saveOutbox(OutboxDTO outboxDTO) {
-        // Convert DTO to Entity
+    public OutboxDTO saveOutbox(OutboxDTO outboxDTO) {
         Outbox outboxEntity = OutboxMapper.mapToEntity(outboxDTO);
-        // Save the entity to the database
-        return outboxRepository.save(outboxEntity);
+        Outbox savedEntity = outboxRepository.save(outboxEntity);
+        return OutboxMapper.mapToDTO(savedEntity);
     }
 
     // Fetch an Outbox entry and return a DTO
@@ -39,7 +43,7 @@ public class OutboxService {
     }
 
     // Scheduled method to process unprocessed messages in the Outbox
-    @Scheduled(fixedRate = 5000) // Check the outbox every 5 seconds
+    @Scheduled(fixedRate = 5000)
     public void processOutbox() {
         List<Outbox> unprocessedMessages = outboxRepository.findByProcessedFalse();
 
@@ -47,16 +51,11 @@ public class OutboxService {
             try {
                 // Deserialize the message payload
                 WalletCreationMessage message = objectMapper.readValue(outbox.getPayload(), WalletCreationMessage.class);
-
-                // Send the message to RabbitMQ
-                rabbitTemplate.convertAndSend("walletCreationQueue", message);
-
-                // Mark the message as processed
+                rabbitTemplate.convertAndSend(walletCreationQueue, message);
                 outbox.setProcessed(true);
+                outbox.setProcessedAt(LocalDateTime.now());
                 outboxRepository.save(outbox);
-
             } catch (Exception e) {
-                // Log and retry in the next iteration
                 System.err.println("Failed to process outbox message: " + e.getMessage());
             }
         }
