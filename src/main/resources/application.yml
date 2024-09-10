@@ -2,12 +2,10 @@ server:
   port: 8081  # Port for User Service
 
 spring:
-  config:
-    activate:
-      on-profile: default
+  profiles:
+    active: default  # Default profile is active
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/userdb  # Dedicated database for User Service
     username: postgres
     password: Ab123456
     driver-class-name: org.postgresql.Driver
@@ -21,8 +19,6 @@ spring:
     open-in-view: false  # Disable open-in-view to avoid potential performance issues
 
   rabbitmq:
-    host: localhost
-    port: 5672
     username: guest
     password: guest
 
@@ -42,6 +38,20 @@ springdoc:
   swagger-ui:
     path: /swagger-ui-custom.html
 
+# Default profile (local development and testing)
+---
+spring:
+  config:
+    activate:
+      on-profile: default
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/userdb  # Dedicated database for User Service
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+
 # Docker profile (for running in containers)
 ---
 spring:
@@ -51,36 +61,7 @@ spring:
 
   datasource:
     url: jdbc:postgresql://db:5432/userdb  # Database connection for Docker environment
-    username: postgres
-    password: Ab123456
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      auto-commit: true
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    open-in-view: false  # Disable open-in-view in Docker as well
 
   rabbitmq:
     host: rabbitmq  # RabbitMQ host in Docker (referring to service name)
     port: 5672
-    username: guest
-    password: guest
-
-# Custom application-specific settings
-app:
-    wallet-creation: walletCreationQueue
-
-# Logging level for the User Service
-logging:
-  level:
-    com.jack.userservice: INFO
-
-# SpringDoc settings for API documentation
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui-custom.html
