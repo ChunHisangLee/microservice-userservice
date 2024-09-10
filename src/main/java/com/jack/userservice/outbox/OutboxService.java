@@ -18,7 +18,7 @@ public class OutboxService {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${app.rabbitmq.queues.wallet-creation}")
+    @Value("${app.wallet-creation}")
     private String walletCreationQueue;
 
     public OutboxService(OutboxRepository outboxRepository, RabbitTemplate rabbitTemplate, ObjectMapper objectMapper) {

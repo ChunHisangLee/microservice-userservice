@@ -28,9 +28,7 @@ spring:
 
 # Custom application-specific settings
 app:
-  rabbitmq:
-    queues:
-      wallet-creation: walletCreationQueue
+  wallet-creation: walletCreationQueue
 
 # Logging level for the User Service
 logging:
@@ -73,9 +71,7 @@ spring:
 
 # Custom application-specific settings
 app:
-  rabbitmq:
-    queues:
-      wallet-creation: walletCreationQueue
+    wallet-creation: walletCreationQueue
 
 # Logging level for the User Service
 logging:
