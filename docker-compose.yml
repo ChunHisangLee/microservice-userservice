@@ -9,11 +9,27 @@ services:
     ports:
       - "5433:5432"
     networks:
-      - microservice-network
+      - microservice-network  # Use the same network
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 10s
       timeout: 10s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"  # Exposing RabbitMQ on port 5672
+      - "15672:15672"  # Exposing RabbitMQ management interface on port 15672
+    networks:
+      - microservice-network  # Use the same network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
       retries: 5
 
   userservice:
@@ -21,17 +37,23 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8081:8081"
+      - "8081:8081"  # Exposing User Service on port 8081
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/userdb
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: Ab123456
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
       SPRING_PROFILES_ACTIVE: docker
     depends_on:
       db:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
-      - microservice-network
+      - microservice-network  # Use the same network
 
 networks:
   microservice-network:
