@@ -1,11 +1,13 @@
 package com.jack.userservice.controller;
 
+import com.jack.userservice.dto.AuthRequestDTO;
+import com.jack.userservice.dto.UserRegistrationDTO;
+import com.jack.userservice.dto.UserResponseDTO;
 import com.jack.userservice.dto.UsersDTO;
 import com.jack.userservice.entity.Users;
 import com.jack.userservice.exception.CustomErrorException;
 import com.jack.userservice.mapper.UsersMapper;
 import com.jack.userservice.security.JwtAuthenticationResponse;
-import com.jack.userservice.security.JwtTokenProvider;
 import com.jack.userservice.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -43,12 +45,15 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UsersDTO> registerUser(@Valid @RequestBody UsersDTO usersDTO) {
-        logger.info("Registering new user with email: {}", usersDTO.getEmail());
-        Users users = usersMapper.toEntity(usersDTO);
-        Users createdUser = userService.registerUser(users);
-        logger.info("User registered successfully with ID: {}", createdUser.getId());
-        return ResponseEntity.ok(usersMapper.toDto(createdUser));
+    public ResponseEntity<UserResponseDTO> register(@RequestBody UserRegistrationDTO userRegistrationDTO) {
+        UserResponseDTO userResponse = userService.register(userRegistrationDTO);
+        return ResponseEntity.ok(userResponse);
+    }
+
+    @PostMapping("/verify-password")
+    public ResponseEntity<Boolean> verifyPassword(@RequestBody AuthRequestDTO authRequestDTO) {
+        boolean isPasswordValid = userService.verifyPassword(authRequestDTO.getEmail(), authRequestDTO.getPassword());
+        return ResponseEntity.ok(isPasswordValid);
     }
 
     @PutMapping("/{id}")

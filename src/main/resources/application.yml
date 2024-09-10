@@ -41,12 +41,12 @@ springdoc:
 
 # Security settings specific to the User Service
 app:
-  jwtSecret: Xb34fJd9kPbvmJc84mDkV9b3Xb4fJd9kPbvmJc84mDkV9b3Xb34fJd9kPbvmJc84
-  jwtExpirationMs: 3600000
+
+
 
 security:
   authentication:
-    enabled: true  # Enable authentication as the User Service typically manages user authentication
+    enabled: false  # Enable authentication as the User Service typically manages user authentication
 
 # Docker profile (for running in containers)
 ---
@@ -89,9 +89,9 @@ springdoc:
 
 # Security settings specific to the User Service
 app:
-  jwtSecret: Xb34fJd9kPbvmJc84mDkV9b3Xb4fJd9kPbvmJc84mDkV9b3Xb34fJd9kPbvmJc84
-  jwtExpirationMs: 3600000
+
+
 
 security:
   authentication:
-    enabled: true  # Enable authentication as the User Service typically manages user authentication
+    enabled: false  # Enable authentication as the User Service typically manages user authentication

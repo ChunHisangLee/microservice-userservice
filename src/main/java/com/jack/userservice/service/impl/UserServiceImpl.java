@@ -1,6 +1,11 @@
 package com.jack.userservice.service.impl;
 
+import com.jack.userservice.client.AuthServiceClient;
 import com.jack.userservice.config.RabbitMQConfig;
+import com.jack.userservice.dto.AuthRequestDTO;
+import com.jack.userservice.dto.AuthResponseDTO;
+import com.jack.userservice.dto.UserRegistrationDTO;
+import com.jack.userservice.dto.UserResponseDTO;
 import com.jack.userservice.entity.Users;
 import com.jack.userservice.exception.CustomErrorException;
 import com.jack.userservice.message.WalletCreationMessage;
@@ -14,7 +19,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -28,26 +32,37 @@ public class UserServiceImpl implements UserService {
     private final UsersRepository usersRepository;
     private final PasswordEncoder passwordEncoder;
     private final RabbitTemplate rabbitTemplate;
+    private final AuthServiceClient authServiceClient;
 
-    @Transactional
     @Override
-    public Users registerUser(Users users) {
-        logger.info("Attempting to register user with email: {}", users.getEmail());
-        validateUserEmail(users.getEmail());
+    public UserResponseDTO register(UserRegistrationDTO registrationDTO) {
+        // Check if user already exists
+        if (usersRepository.findByEmail(registrationDTO.getEmail()).isPresent()) {
+            logger.error("User registration failed. User with email '{}' already exists", registrationDTO.getEmail());
+            throw new RuntimeException("User with email already exists.");
+        }
 
-        // Encode the user's password
-        users.setPassword(passwordEncoder.encode(users.getPassword()));
-        logger.debug("Password encoded for user with email: {}", users.getEmail());
+        // Encode the password before saving
+        String encodedPassword = passwordEncoder.encode(registrationDTO.getPassword());
 
-        // Save the user and cascade save the wallet
-        Users savedUser = usersRepository.save(users);
-        logger.info("User with email: {} registered successfully with ID: {}", savedUser.getEmail(), savedUser.getId());
+        // Create a new user without encoding password, as auth-service will handle encryption
+        Users newUser = Users.builder()
+                .email(registrationDTO.getEmail())
+                .password(encodedPassword)
+                .build();
 
-        // Send a message to RabbitMQ for wallet creation
-        double initialBalance = 1000.0;
-        sendWalletCreationMessage(savedUser.getId(), initialBalance);
+        Users savedUser = usersRepository.save(newUser);
 
-        return savedUser;
+        // Programmatically log the user in by calling auth-service
+        AuthRequestDTO authRequest = new AuthRequestDTO(savedUser.getEmail(), registrationDTO.getPassword());
+        AuthResponseDTO authResponse = authServiceClient.login(authRequest);  // Use Feign Client to call auth-service
+
+        // Return user details and JWT token
+        return UserResponseDTO.builder()
+                .id(savedUser.getId())
+                .email(savedUser.getEmail())
+                .token(authResponse.getToken())  // Include JWT token in the response
+                .build();
     }
 
     @Override
@@ -69,7 +84,8 @@ public class UserServiceImpl implements UserService {
         existingUser.setEmail(users.getEmail());
 
         if (users.getPassword() != null && !users.getPassword().isEmpty()) {
-            existingUser.setPassword(passwordEncoder.encode(users.getPassword()));
+            String encodedPassword = passwordEncoder.encode(users.getPassword());
+            existingUser.setPassword(encodedPassword);
             logger.debug("Password updated for user with ID: {}", id);
         }
 
@@ -118,21 +134,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean verifyPassword(String rawPassword, String encodedPassword) {
-        logger.debug("Verifying password for authentication.");
-        return passwordEncoder.matches(rawPassword, encodedPassword);
-    }
-
-    private void validateUserEmail(String email) {
-        if (usersRepository.findByEmail(email).isPresent()) {
-            logger.error("Email {} is already registered.", email);
-            throw new CustomErrorException(
-                    HttpStatus.CONFLICT.value(),
-                    CONFLICT_STATUS,
-                    EMAIL_ALREADY_REGISTERED,
-                    POST_USER_API_PATH
-            );
-        }
+    public boolean verifyPassword(String email, String rawPassword) {
+        Users user = findUserByEmail(email);  // Find the user by email
+        return passwordEncoder.matches(rawPassword, user.getPassword());  // Verify the password
     }
 
     private Users findUserById(Long id) {
