@@ -7,15 +7,11 @@ import com.jack.userservice.exception.CustomErrorException;
 import com.jack.userservice.mapper.UsersMapper;
 import com.jack.userservice.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.web.bind.annotation.*;
 
 import static com.jack.userservice.constants.ErrorMessages.*;
@@ -111,13 +107,25 @@ public class UserController {
 
 
     @GetMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        // Extract the JWT token from the Authorization header
+        String token = request.getHeader("Authorization");
 
-        if (authentication != null) {
-            logger.info("User with principal: {} logging out.", authentication.getName());
-            new SecurityContextLogoutHandler().logout(request, response, authentication);
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);  // Remove "Bearer " prefix
+
+            try {
+                authServiceClient.logout("Bearer " + token);  // Call logout in auth-service
+                logger.info("User successfully logged out.");
+            } catch (Exception e) {
+                logger.error("Error during logout: {}", e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+        } else {
+            logger.warn("No token found for logout.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
+
         return ResponseEntity.ok().build();
     }
 }
