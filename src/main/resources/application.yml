@@ -54,6 +54,9 @@ spring:
     host: localhost
     port: 5672
 
+# Add the AUTH_SERVICE_URL for Feign to use in Docker environment
+AUTH_SERVICE_URL: http://127.0.0.1:8084
+
 # Docker profile (for running in containers)
 ---
 spring:
@@ -67,3 +70,6 @@ spring:
   rabbitmq:
     host: rabbitmq  # RabbitMQ host in Docker (referring to service name)
     port: 5672
+
+# Add the AUTH_SERVICE_URL for Feign to use in Docker environment
+AUTH_SERVICE_URL: http://auth-service:8084

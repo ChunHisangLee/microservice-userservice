@@ -32,13 +32,15 @@ services:
       timeout: 5s
       retries: 5
 
-  userservice:
+  user-service:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "8081:8081"  # Exposing User Service on port 8081
     environment:
+      SPRING_PROFILES_ACTIVE: docker
+      AUTH_SERVICE_URL: http://auth-service:8084
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/userdb
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: Ab123456
@@ -46,7 +48,7 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
-      SPRING_PROFILES_ACTIVE: docker
+
     depends_on:
       db:
         condition: service_healthy

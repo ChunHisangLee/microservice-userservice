@@ -1,6 +1,7 @@
 package com.jack.userservice.controller;
 
 import com.jack.userservice.client.AuthServiceClient;
+import com.jack.userservice.constants.SecurityConstants;
 import com.jack.userservice.dto.*;
 import com.jack.userservice.entity.Users;
 import com.jack.userservice.exception.CustomErrorException;
@@ -127,9 +128,9 @@ public class UserController {
 
     @GetMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
-        String token = request.getHeader("Authorization");
+        String token = request.getHeader(SecurityConstants.AUTHORIZATION_HEADER);
 
-        if (token != null && token.startsWith("Bearer ")) {
+        if (token != null && token.startsWith(SecurityConstants.BEARER_PREFIX)) {
             try {
                 authServiceClient.logout(token);
                 logger.info("Logout request sent to auth-service with token: {}", token);

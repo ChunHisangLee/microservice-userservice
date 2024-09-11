@@ -52,6 +52,8 @@ public class UserServiceImpl implements UserService {
                 .password(encodedPassword)
                 .build();
 
+        System.out.println("AUTH_SERVICE_URL: " + System.getenv("AUTH_SERVICE_URL"));
+        logger.info("AUTH_SERVICE_URL: {}", System.getenv("AUTH_SERVICE_URL"));
         Users savedUser = usersRepository.save(newUser);
 
         // Programmatically log the user in by calling auth-service
