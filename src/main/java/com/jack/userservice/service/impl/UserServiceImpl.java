@@ -10,6 +10,7 @@ import com.jack.userservice.exception.CustomErrorException;
 import com.jack.userservice.message.WalletCreationMessage;
 import com.jack.userservice.repository.UsersRepository;
 import com.jack.userservice.service.UserService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,7 +171,6 @@ public class UserServiceImpl implements UserService {
 
     private void sendWalletCreationMessage(Long userId, Double initialBalance) {
         WalletCreationMessage walletMessage = new WalletCreationMessage(userId, initialBalance);
-
         try {
             rabbitTemplate.convertAndSend(walletCreationQueue, walletMessage);
             logger.info("Wallet creation message sent for user ID: {}", userId);
