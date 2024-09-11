@@ -47,6 +47,7 @@ public class UserServiceImpl implements UserService {
 
         // Create a new user without encoding password, as auth-service will handle encryption
         Users newUser = Users.builder()
+                .name(registrationDTO.getName())
                 .email(registrationDTO.getEmail())
                 .password(encodedPassword)
                 .build();
