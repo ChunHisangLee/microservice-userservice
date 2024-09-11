@@ -22,10 +22,6 @@ spring:
     username: guest
     password: guest
 
-  security:
-    user:
-      name: ${SECURITY_USERNAME:user}
-      password: ${SECURITY_PASSWORD:12345}
 # Custom application-specific settings
 app:
   wallet-creation: walletCreationQueue

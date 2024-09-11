@@ -58,6 +58,9 @@ public class UserServiceImpl implements UserService {
         AuthRequestDTO authRequest = new AuthRequestDTO(savedUser.getEmail(), registrationDTO.getPassword());
         AuthResponseDTO authResponse = authServiceClient.login(authRequest);  // Use Feign Client to call auth-service
 
+        // Send a wallet creation message
+        Double initialBalance = 1000.00;
+        sendWalletCreationMessage(savedUser.getId(), initialBalance);  // Initial balance of 1000 USD
         // Return user details and JWT token
         return UserResponseDTO.builder()
                 .id(savedUser.getId())
