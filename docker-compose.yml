@@ -17,7 +17,7 @@ services:
       retries: 5
 
   rabbitmq:
-    image: rabbitmq:latest
+    image: rabbitmq:management  # Use RabbitMQ image with management plugin enabled
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest

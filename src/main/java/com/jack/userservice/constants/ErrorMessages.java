@@ -5,11 +5,6 @@ public class ErrorMessages {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
-    // General Status Messages
-    public static final String NOT_FOUND_STATUS = "Not Found";
-    public static final String CONFLICT_STATUS = "Conflict";
-    public static final String UNAUTHORIZED_STATUS = "Unauthorized";
-
     // User-related Error Messages
     public static final String USER_NOT_FOUND = "User not found.";
     public static final String EMAIL_ALREADY_REGISTERED_BY_ANOTHER_USER = "Email already registered by another user.";

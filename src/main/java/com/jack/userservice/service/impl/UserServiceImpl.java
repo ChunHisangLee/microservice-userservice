@@ -1,7 +1,6 @@
 package com.jack.userservice.service.impl;
 
 import com.jack.userservice.client.AuthServiceClient;
-import com.jack.userservice.config.RabbitMQConfig;
 import com.jack.userservice.dto.AuthRequestDTO;
 import com.jack.userservice.dto.AuthResponseDTO;
 import com.jack.userservice.dto.UserRegistrationDTO;
@@ -14,8 +13,10 @@ import com.jack.userservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpConnectException;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,9 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final RabbitTemplate rabbitTemplate;
     private final AuthServiceClient authServiceClient;
+
+    @Value("${app.wallet-creation}")
+    private String walletCreationQueue;
 
     @Override
     public UserResponseDTO register(UserRegistrationDTO registrationDTO) {
@@ -78,8 +82,7 @@ public class UserServiceImpl implements UserService {
         if (usersRepository.findByEmail(users.getEmail()).filter(user -> !user.getId().equals(id)).isPresent()) {
             logger.error("Email {} is already registered by another user.", users.getEmail());
             throw new CustomErrorException(
-                    HttpStatus.CONFLICT.value(),
-                    CONFLICT_STATUS,
+                    HttpStatus.CONFLICT,
                     EMAIL_ALREADY_REGISTERED_BY_ANOTHER_USER,
                     PUT_USER_API_PATH + id
             );
@@ -115,8 +118,7 @@ public class UserServiceImpl implements UserService {
         if (!passwordEncoder.matches(password, user.getPassword())) {
             logger.error("Invalid password for email: {}", email);
             throw new CustomErrorException(
-                    HttpStatus.UNAUTHORIZED.value(),
-                    UNAUTHORIZED_STATUS,
+                    HttpStatus.UNAUTHORIZED,
                     INVALID_EMAIL_OR_PASSWORD,
                     POST_LOGIN_API_PATH
             );
@@ -148,8 +150,7 @@ public class UserServiceImpl implements UserService {
         return usersRepository.findById(id).orElseThrow(() -> {
             logger.error("User with ID: {} not found.", id);
             return new CustomErrorException(
-                    HttpStatus.NOT_FOUND.value(),
-                    NOT_FOUND_STATUS,
+                    HttpStatus.NOT_FOUND,
                     USER_NOT_FOUND,
                     GET_USER_API_PATH + id
             );
@@ -160,8 +161,7 @@ public class UserServiceImpl implements UserService {
         return usersRepository.findByEmail(email).orElseThrow(() -> {
             logger.error("Invalid email or password for email: {}", email);
             return new CustomErrorException(
-                    HttpStatus.UNAUTHORIZED.value(),
-                    UNAUTHORIZED_STATUS,
+                    HttpStatus.UNAUTHORIZED,
                     INVALID_EMAIL_OR_PASSWORD,
                     POST_LOGIN_API_PATH
             );
@@ -172,13 +172,14 @@ public class UserServiceImpl implements UserService {
         WalletCreationMessage walletMessage = new WalletCreationMessage(userId, initialBalance);
 
         try {
-            rabbitTemplate.convertAndSend(RabbitMQConfig.USER_CREATED_QUEUE, walletMessage);
+            rabbitTemplate.convertAndSend(walletCreationQueue, walletMessage);
             logger.info("Wallet creation message sent for user ID: {}", userId);
+        } catch (AmqpConnectException e) {
+            logger.error("Connection to RabbitMQ failed: {}", e.getMessage());
         } catch (AmqpException e) {
             logger.error("Failed to send message to RabbitMQ: {}", e.getMessage());
             throw new CustomErrorException(
-                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    "Internal Server Error",
+                    HttpStatus.INTERNAL_SERVER_ERROR,
                     FAILED_WALLET_CREATION,
                     POST_USER_API_PATH
             );

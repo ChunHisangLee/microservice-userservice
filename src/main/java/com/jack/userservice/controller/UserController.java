@@ -64,7 +64,6 @@ public class UserController {
                     logger.error("User with ID: {} not found for update.", id);
                     return new CustomErrorException(
                             HttpStatus.NOT_FOUND,
-                            NOT_FOUND_STATUS,
                             USER_NOT_FOUND,
                             GET_USER_API_PATH + id
                     );
@@ -98,8 +97,7 @@ public class UserController {
                 .orElseThrow(() -> {
                     logger.error("User with ID: {} not found.", id);
                     return new CustomErrorException(
-                            HttpStatus.NOT_FOUND.value(),
-                            NOT_FOUND_STATUS,
+                            HttpStatus.NOT_FOUND,
                             USER_NOT_FOUND,
                             GET_USER_API_PATH + id
                     );

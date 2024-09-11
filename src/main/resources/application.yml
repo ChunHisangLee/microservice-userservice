@@ -33,6 +33,7 @@ logging:
 
   pattern:
     console: "${LOGPATTERN_CONSOLE:%green(%d{HH:mm:ss.SSS}) %blue(%-5level) %red([%thread]) %yellow(%logger{15}) - %msg%n}"
+
 # SpringDoc settings for API documentation
 springdoc:
   api-docs:
@@ -54,7 +55,7 @@ spring:
     host: localhost
     port: 5672
 
-# Add the AUTH_SERVICE_URL for Feign to use in Docker environment
+# Add the AUTH_SERVICE_URL for Feign to use in local environment
 AUTH_SERVICE_URL: http://127.0.0.1:8084
 
 # Docker profile (for running in containers)
@@ -73,3 +74,10 @@ spring:
 
 # Add the AUTH_SERVICE_URL for Feign to use in Docker environment
 AUTH_SERVICE_URL: http://auth-service:8084
+
+# Logging configuration
+logging:
+  level:
+    org:
+      springframework:
+        amqp: DEBUG
