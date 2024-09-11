@@ -39,7 +39,7 @@ public class UserServiceImpl implements UserService {
         // Check if user already exists
         if (usersRepository.findByEmail(registrationDTO.getEmail()).isPresent()) {
             logger.error("User registration failed. User with email '{}' already exists", registrationDTO.getEmail());
-            throw new RuntimeException("User with email already exists.");
+            throw new RuntimeException(EMAIL_ALREADY_REGISTERED_BY_ANOTHER_USER);
         }
 
         // Encode the password before saving
@@ -52,7 +52,6 @@ public class UserServiceImpl implements UserService {
                 .password(encodedPassword)
                 .build();
 
-        System.out.println("AUTH_SERVICE_URL: " + System.getenv("AUTH_SERVICE_URL"));
         logger.info("AUTH_SERVICE_URL: {}", System.getenv("AUTH_SERVICE_URL"));
         Users savedUser = usersRepository.save(newUser);
 
@@ -179,7 +178,7 @@ public class UserServiceImpl implements UserService {
             logger.error("Failed to send message to RabbitMQ: {}", e.getMessage());
             throw new CustomErrorException(
                     HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    INTERNAL_SERVER_ERROR_STATUS,
+                    "Internal Server Error",
                     FAILED_WALLET_CREATION,
                     POST_USER_API_PATH
             );

@@ -17,6 +17,14 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 ex.getPath()
         );
-        return new ResponseEntity<>(errorResponse, HttpStatus.valueOf(ex.getStatus()));
+
+        HttpStatus httpStatus = HttpStatus.resolve(ex.getStatusCode());
+
+        // Handle invalid status codes safely by defaulting to INTERNAL_SERVER_ERROR if necessary
+        if (httpStatus == null) {
+            httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+
+        return new ResponseEntity<>(errorResponse, httpStatus);
     }
 }
