@@ -13,11 +13,11 @@ spring:
     hikari:
       auto-commit: true
 
-    jpa:
-      hibernate:
-        ddl-auto: update
-      show-sql: true
-      open-in-view: false  # Disable open-in-view for better performance
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false  # Disable open-in-view for better performance
 
 # Custom application-specific settings
 app:
