@@ -1,5 +1,6 @@
 package com.jack.userservice.client;
 
+import com.jack.userservice.constants.SecurityConstants;
 import com.jack.userservice.dto.AuthRequestDTO;
 import com.jack.userservice.dto.AuthResponseDTO;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -15,9 +16,9 @@ public interface AuthServiceClient {
     AuthResponseDTO login(@RequestBody AuthRequestDTO authRequestDTO);
 
     @PostMapping("/api/auth/logout")
-    void logout(@RequestHeader("Authorization") String token);
+    void logout(@RequestHeader(SecurityConstants.AUTHORIZATION_HEADER) String token);
 
     @PostMapping("/api/auth/validate")
-    Boolean validateToken(@RequestHeader("Authorization") String token, @RequestParam Long userId);
+    Boolean validateToken(@RequestHeader(SecurityConstants.AUTHORIZATION_HEADER) String token, @RequestParam Long userId);
 
 }

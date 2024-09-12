@@ -21,7 +21,9 @@ spring:
 
 # Custom application-specific settings
 app:
-  wallet-creation: walletCreationQueue
+  wallet:
+    exchange: wallet-exchange   # The RabbitMQ exchange for wallet messages
+    routing-key: wallet.creation  # The routing key used for wallet creation messages
 
 # SpringDoc settings for API documentation
 springdoc:

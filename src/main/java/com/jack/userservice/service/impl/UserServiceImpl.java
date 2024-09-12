@@ -10,7 +10,6 @@ import com.jack.userservice.exception.CustomErrorException;
 import com.jack.userservice.message.WalletCreationMessage;
 import com.jack.userservice.repository.UsersRepository;
 import com.jack.userservice.service.UserService;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +35,11 @@ public class UserServiceImpl implements UserService {
     private final RabbitTemplate rabbitTemplate;
     private final AuthServiceClient authServiceClient;
 
-    @Value("${app.wallet-creation}")
-    private String walletCreationQueue;
+    @Value("${app.wallet.exchange}")
+    private String exchange;
+
+    @Value("${app.wallet.routing-key}")
+    private String routingKey;
 
     @Override
     public UserResponseDTO register(UserRegistrationDTO registrationDTO) {
@@ -171,8 +173,9 @@ public class UserServiceImpl implements UserService {
 
     private void sendWalletCreationMessage(Long userId, Double initialBalance) {
         WalletCreationMessage walletMessage = new WalletCreationMessage(userId, initialBalance);
+
         try {
-            rabbitTemplate.convertAndSend(walletCreationQueue, walletMessage);
+            rabbitTemplate.convertAndSend(exchange, routingKey, walletMessage);
             logger.info("Wallet creation message sent for user ID: {}", userId);
         } catch (AmqpConnectException e) {
             logger.error("Connection to RabbitMQ failed: {}", e.getMessage());
