@@ -1,6 +1,3 @@
-server:
-  port: 8081  # Port for User Service in Docker
-
 spring:
   rabbitmq:
     host: rabbitmq  # RabbitMQ host in Docker environment
