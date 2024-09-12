@@ -2,6 +2,7 @@ package com.jack.userservice.service;
 
 import com.jack.userservice.dto.UserRegistrationDTO;
 import com.jack.userservice.dto.UserResponseDTO;
+import com.jack.userservice.dto.WalletBalanceDTO;
 import com.jack.userservice.entity.Users;
 
 import java.util.Optional;
@@ -20,4 +21,8 @@ public interface UserService {
     Optional<Users> findByEmail(String email);
 
     boolean verifyPassword(String email, String rawPassword);
+
+    WalletBalanceDTO getCachedWalletBalance(Long userId);
+
+    void cacheWalletBalance(WalletBalanceDTO walletBalance);
 }

@@ -1,6 +1,7 @@
 package com.jack.userservice.controller;
 
 import com.jack.userservice.client.AuthServiceClient;
+import com.jack.userservice.client.WalletBalanceRequestSender;
 import com.jack.userservice.constants.SecurityConstants;
 import com.jack.userservice.dto.*;
 import com.jack.userservice.entity.Users;
@@ -27,11 +28,14 @@ public class UserController {
     private final UserService userService;
     private final UsersMapper usersMapper;
     private final AuthServiceClient authServiceClient;
+    private final WalletBalanceRequestSender walletBalanceRequestSender;
 
-    public UserController(UserService userService, UsersMapper usersMapper, AuthServiceClient authServiceClient) {
+    public UserController(UserService userService, UsersMapper usersMapper, AuthServiceClient authServiceClient,
+                          WalletBalanceRequestSender walletBalanceRequestSender) {
         this.userService = userService;
         this.usersMapper = usersMapper;
         this.authServiceClient = authServiceClient;
+        this.walletBalanceRequestSender = walletBalanceRequestSender;
     }
 
     @PostMapping("/register")
@@ -94,17 +98,24 @@ public class UserController {
     public ResponseEntity<UsersDTO> getUserById(@PathVariable Long id) {
         logger.info("Fetching user with ID: {}", id);
         Users user = userService.getUserById(id)
-                .orElseThrow(() -> {
-                    logger.error("User with ID: {} not found.", id);
-                    return new CustomErrorException(
-                            HttpStatus.NOT_FOUND,
-                            USER_NOT_FOUND,
-                            GET_USER_API_PATH + id
-                    );
-                });
+                .orElseThrow(() -> new CustomErrorException(HttpStatus.NOT_FOUND, USER_NOT_FOUND, GET_USER_API_PATH + id));
 
-        logger.info("User with ID: {} found.", id);
-        return ResponseEntity.ok(usersMapper.toDto(user));
+        UsersDTO usersDTO = usersMapper.toDto(user);
+
+        // Check cache for wallet balance
+        WalletBalanceDTO cachedBalance = userService.getCachedWalletBalance(id);
+
+        if (cachedBalance != null) {
+            usersDTO.setUsdBalance(cachedBalance.getUsdBalance());
+            usersDTO.setBtcBalance(cachedBalance.getBtcBalance());
+        } else {
+            // Send request to wallet-service to fetch the balance via RabbitMQ
+            walletBalanceRequestSender.sendBalanceRequest(id);
+            usersDTO.setUsdBalance(0.0);  // Placeholder until wallet-service responds
+            usersDTO.setBtcBalance(0.0);  // Placeholder until wallet-service responds
+        }
+
+        return ResponseEntity.ok(usersDTO);
     }
 
     @PostMapping("/login")
@@ -118,11 +129,10 @@ public class UserController {
 
         // If credentials are valid, request JWT token from auth-service
         AuthResponseDTO authResponse = authServiceClient.login(loginRequest);
-        logger.info("User with email: {} logged in successfully.", loginRequest.getEmail());
+        logger.info("User with email: {} logged in successfully.");
         // Return the JWT token received from auth-service
         return ResponseEntity.ok(authResponse);
     }
-
 
     @GetMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {

@@ -7,19 +7,19 @@ import org.springframework.stereotype.Component;
 @Component
 public class UsersMapper {
 
-    public UsersDTO toDto(Users users) {
+    public UsersDTO toDto(Users user) {
         return UsersDTO.builder()
-                .id(users.getId())
-                .name(users.getName())
-                .email(users.getEmail())
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
                 .build();
     }
 
     public Users toEntity(UsersDTO usersDTO) {
-        return Users.builder()
-                .name(usersDTO.getName())
-                .email(usersDTO.getEmail())
-                .password(usersDTO.getPassword()) // Ensure password is mapped if provided
-                .build();
+        Users user = new Users();
+        user.setId(usersDTO.getId());
+        user.setName(usersDTO.getName());
+        user.setEmail(usersDTO.getEmail());
+        return user;
     }
 }

@@ -1,10 +1,7 @@
 package com.jack.userservice.service.impl;
 
 import com.jack.userservice.client.AuthServiceClient;
-import com.jack.userservice.dto.AuthRequestDTO;
-import com.jack.userservice.dto.AuthResponseDTO;
-import com.jack.userservice.dto.UserRegistrationDTO;
-import com.jack.userservice.dto.UserResponseDTO;
+import com.jack.userservice.dto.*;
 import com.jack.userservice.entity.Users;
 import com.jack.userservice.exception.CustomErrorException;
 import com.jack.userservice.message.WalletCreationMessage;
@@ -17,6 +14,7 @@ import org.springframework.amqp.AmqpConnectException;
 import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -34,11 +32,15 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final RabbitTemplate rabbitTemplate;
     private final AuthServiceClient authServiceClient;
+    private final RedisTemplate<String, WalletBalanceDTO> redisTemplate;
+
+    @Value("${app.wallet.cache-prefix}")
+    private String walletCachePrefix;
 
     @Value("${app.wallet.exchange}")
     private String exchange;
 
-    @Value("${app.wallet.routing-key}")
+    @Value("${app.wallet.routing-key.create}")
     private String routingKey;
 
     @Override
@@ -147,6 +149,16 @@ public class UserServiceImpl implements UserService {
     public boolean verifyPassword(String email, String rawPassword) {
         Users user = findUserByEmail(email);  // Find the user by email
         return passwordEncoder.matches(rawPassword, user.getPassword());  // Verify the password
+    }
+
+    @Override
+    public WalletBalanceDTO getCachedWalletBalance(Long userId) {
+        return redisTemplate.opsForValue().get(walletCachePrefix + userId);
+    }
+
+    @Override
+    public void cacheWalletBalance(WalletBalanceDTO walletBalance) {
+        redisTemplate.opsForValue().set(walletCachePrefix + walletBalance.getUserId(), walletBalance);
     }
 
     private Users findUserById(Long id) {
