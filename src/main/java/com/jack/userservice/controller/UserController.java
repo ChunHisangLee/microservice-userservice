@@ -1,7 +1,6 @@
 package com.jack.userservice.controller;
 
 import com.jack.userservice.client.AuthServiceClient;
-import com.jack.userservice.client.WalletBalanceRequestSender;
 import com.jack.userservice.constants.ErrorMessages;
 import com.jack.userservice.constants.SecurityConstants;
 import com.jack.userservice.dto.*;
@@ -30,14 +29,11 @@ public class UserController {
     private final UserService userService;
     private final UsersMapper usersMapper;
     private final AuthServiceClient authServiceClient;
-    private final WalletBalanceRequestSender walletBalanceRequestSender;
 
-    public UserController(UserService userService, UsersMapper usersMapper, AuthServiceClient authServiceClient,
-                          WalletBalanceRequestSender walletBalanceRequestSender) {
+    public UserController(UserService userService, UsersMapper usersMapper, AuthServiceClient authServiceClient) {
         this.userService = userService;
         this.usersMapper = usersMapper;
         this.authServiceClient = authServiceClient;
-        this.walletBalanceRequestSender = walletBalanceRequestSender;
     }
 
     @PostMapping("/register")

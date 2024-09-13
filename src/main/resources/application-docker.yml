@@ -19,13 +19,12 @@ spring:
     show-sql: true
     open-in-view: false  # Disable open-in-view for better performance
 
-  cache:
-    type: redis
+  data:
     redis:
       host: redis
       port: 6379
       password: Ab123456
-      timeout: 60000
+      timeout: 60000ms  # 60 seconds, specified in milliseconds
 
 # Custom application-specific settings
 app:
