@@ -17,5 +17,4 @@ public class UsersDTO {
     private String email;
     private Double usdBalance;  // Add USD balance field
     private Double btcBalance;  // Add BTC balance field
-    private String balanceStatus; // Indicates balance fetching status
 }
