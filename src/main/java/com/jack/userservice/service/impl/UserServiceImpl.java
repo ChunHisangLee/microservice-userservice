@@ -4,6 +4,7 @@ import com.jack.userservice.client.AuthServiceClient;
 import com.jack.userservice.dto.*;
 import com.jack.userservice.entity.Users;
 import com.jack.userservice.exception.CustomErrorException;
+import com.jack.userservice.mapper.UsersMapper;
 import com.jack.userservice.message.WalletCreationMessage;
 import com.jack.userservice.repository.UsersRepository;
 import com.jack.userservice.service.UserService;
@@ -32,10 +33,11 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final RabbitTemplate rabbitTemplate;
     private final AuthServiceClient authServiceClient;
+    private final UsersMapper usersMapper;
     private final RedisTemplate<String, WalletBalanceDTO> redisTemplate;
 
     @Value("${app.wallet.cache-prefix}")
-    private String walletCachePrefix;
+    private String cachePrefix;
 
     @Value("${app.wallet.exchange}")
     private String exchange;
@@ -152,8 +154,28 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public WalletBalanceDTO getCachedWalletBalance(Long userId) {
-        return redisTemplate.opsForValue().get(walletCachePrefix + userId);
+    public UsersDTO getUserWithBalance(Long userId) {
+        // Check if user exists
+        Users user = usersRepository.findById(userId)
+                .orElseThrow(() -> new CustomErrorException(HttpStatus.NOT_FOUND, USER_NOT_FOUND, GET_USER_API_PATH + userId));
+
+        UsersDTO usersDTO = usersMapper.toDto(user);
+
+        // Fetch balance from Redis (updated by wallet-service)
+        String cacheKey = cachePrefix + userId;
+        WalletBalanceDTO cachedBalance = redisTemplate.opsForValue().get(cacheKey);
+
+        if (cachedBalance != null) {
+            logger.info("Returning balance from Redis for user ID: {}", userId);
+            usersDTO.setUsdBalance(cachedBalance.getUsdBalance());
+            usersDTO.setBtcBalance(cachedBalance.getBtcBalance());
+        } else {
+            logger.warn("Balance not found in Redis for user ID: {}", userId);
+            usersDTO.setUsdBalance(null);
+            usersDTO.setBtcBalance(null);
+        }
+
+        return usersDTO;
     }
 
     private Users findUserById(Long id) {

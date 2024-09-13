@@ -16,11 +16,10 @@ public class RedisConfig {
         RedisTemplate<String, UsersDTO> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(connectionFactory);
 
-        // Key serializer
         redisTemplate.setKeySerializer(new StringRedisSerializer());
-
-        // Value serializer
         redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        redisTemplate.setHashKeySerializer(new StringRedisSerializer());
+        redisTemplate.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
 
         return redisTemplate;
     }

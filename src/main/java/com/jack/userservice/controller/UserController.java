@@ -2,6 +2,7 @@ package com.jack.userservice.controller;
 
 import com.jack.userservice.client.AuthServiceClient;
 import com.jack.userservice.client.WalletBalanceRequestSender;
+import com.jack.userservice.constants.ErrorMessages;
 import com.jack.userservice.constants.SecurityConstants;
 import com.jack.userservice.dto.*;
 import com.jack.userservice.entity.Users;
@@ -17,7 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import static com.jack.userservice.constants.ErrorMessages.*;
+import static com.jack.userservice.constants.ErrorMessages.GET_USER_API_PATH;
+import static com.jack.userservice.constants.ErrorMessages.USER_NOT_FOUND;
 
 @RestController
 @RequestMapping("/api/users")
@@ -56,11 +58,7 @@ public class UserController {
             @Valid @RequestBody UsersDTO usersDTO,
             @RequestHeader("Authorization") String token) {
 
-        if (!authServiceClient.validateToken(token, id)) {
-            logger.error("Unauthorized request for updating user with ID: {}", id);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
+        validateToken(token, id, ErrorMessages.PUT_USER_API_PATH);
         logger.info("Updating user with ID: {}", id);
         Users users = usersMapper.toEntity(usersDTO);
         Users updatedUser = userService.updateUser(id, users)
@@ -82,12 +80,7 @@ public class UserController {
             @PathVariable Long id,
             @RequestHeader("Authorization") String token) {
 
-        // Validate JWT token via auth-service
-        if (!authServiceClient.validateToken(token, id)) {
-            logger.error("Unauthorized request for deleting user with ID: {}", id);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
+        validateToken(token, id, ErrorMessages.DELETE_USER_API_PATH);
         logger.info("Deleting user with ID: {}", id);
         userService.deleteUser(id);
         logger.info("User with ID: {} deleted successfully.", id);
@@ -97,25 +90,8 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<UsersDTO> getUserById(@PathVariable Long id) {
         logger.info("Fetching user with ID: {}", id);
-        Users user = userService.getUserById(id)
-                .orElseThrow(() -> new CustomErrorException(HttpStatus.NOT_FOUND, USER_NOT_FOUND, GET_USER_API_PATH + id));
-
-        UsersDTO usersDTO = usersMapper.toDto(user);
-
-        // Check cache for wallet balance
-        WalletBalanceDTO cachedBalance = userService.getCachedWalletBalance(id);
-
-        if (cachedBalance != null) {
-            usersDTO.setUsdBalance(cachedBalance.getUsdBalance());
-            usersDTO.setBtcBalance(cachedBalance.getBtcBalance());
-        } else {
-            // Send request to wallet-service to fetch the balance via RabbitMQ
-            walletBalanceRequestSender.sendBalanceRequest(id);
-            usersDTO.setUsdBalance(0.0);  // Placeholder until wallet-service responds
-            usersDTO.setBtcBalance(0.0);  // Placeholder until wallet-service responds
-        }
-
-        return ResponseEntity.ok(usersDTO);
+        UsersDTO userDTO = userService.getUserWithBalance(id);
+        return ResponseEntity.ok(userDTO);
     }
 
     @PostMapping("/login")
@@ -127,10 +103,8 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
         }
 
-        // If credentials are valid, request JWT token from auth-service
         AuthResponseDTO authResponse = authServiceClient.login(loginRequest);
-        logger.info("User with email: {} logged in successfully.");
-        // Return the JWT token received from auth-service
+        logger.info("User with email: {} logged in successfully.", loginRequest.getEmail());
         return ResponseEntity.ok(authResponse);
     }
 
@@ -150,6 +124,13 @@ public class UserController {
         } else {
             logger.warn("No valid JWT token found in request for logout.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
+
+    private void validateToken(String token, Long userId, String path) {
+        if (!authServiceClient.validateToken(token, userId)) {
+            logger.error("Unauthorized request for user with ID: {}", userId);
+            throw new CustomErrorException(HttpStatus.UNAUTHORIZED, ErrorMessages.UNAUTHORIZED_REQUEST, path + userId);
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.jack.userservice.client;
 
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -25,9 +26,15 @@ public class WalletBalanceRequestSender {
     }
 
     public void sendBalanceRequest(Long userId) {
-        MessageProperties messageProperties = new MessageProperties();
-        messageProperties.setReplyTo(replyToQueue);
-        Message message = rabbitTemplate.getMessageConverter().toMessage(userId, messageProperties);
-        rabbitTemplate.convertAndSend(walletExchange, walletBalanceRoutingKey, message);
+        try {
+            MessageProperties messageProperties = new MessageProperties();
+            messageProperties.setReplyTo(replyToQueue);
+            Message message = rabbitTemplate.getMessageConverter().toMessage(userId, messageProperties);
+
+            rabbitTemplate.convertAndSend(walletExchange, walletBalanceRoutingKey, message);
+        } catch (AmqpException ex) {
+            // Handle RabbitMQ connection or message sending issues
+            System.err.println("Error sending message to RabbitMQ: " + ex.getMessage());
+        }
     }
 }

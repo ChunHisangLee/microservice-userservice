@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class WalletBalanceResponseListener {
     private static final Logger logger = LoggerFactory.getLogger(WalletBalanceResponseListener.class);
+
     private final RedisTemplate<String, WalletBalanceDTO> redisTemplate;
 
     @Value("${app.wallet.cache-prefix}")
@@ -20,12 +21,20 @@ public class WalletBalanceResponseListener {
         this.redisTemplate = redisTemplate;
     }
 
-    // Listen for the response from wallet-service on the reply-to queue
     @RabbitListener(queues = "${app.wallet.reply-to-queue}")
     public void receiveWalletBalance(WalletBalanceDTO walletBalance) {
-        String cacheKey = cachePrefix + walletBalance.getUserId();
-        redisTemplate.opsForValue().set(cacheKey, walletBalance);
-        logger.info("Updated cache for user ID: {} with balance: USD {}, BTC {}",
-                walletBalance.getUserId(), walletBalance.getUsdBalance(), walletBalance.getBtcBalance());
+        if (walletBalance != null && walletBalance.getUserId() != null) {
+            String cacheKey = cachePrefix + walletBalance.getUserId();
+            WalletBalanceDTO updatedBalance = redisTemplate.opsForValue().get(cacheKey);
+
+            if (updatedBalance != null) {
+                logger.info("Fetched updated balance from Redis for user ID: {} - USD: {}, BTC: {}",
+                        walletBalance.getUserId(), updatedBalance.getUsdBalance(), updatedBalance.getBtcBalance());
+            } else {
+                logger.warn("No balance found in Redis for user ID: {}", walletBalance.getUserId());
+            }
+        } else {
+            logger.error("Received invalid wallet balance response: {}", walletBalance);
+        }
     }
 }
