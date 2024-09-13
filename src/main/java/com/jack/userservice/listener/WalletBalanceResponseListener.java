@@ -1,33 +1,31 @@
 package com.jack.userservice.listener;
 
 import com.jack.userservice.dto.WalletBalanceDTO;
-import com.jack.userservice.dto.WalletResponseDTO;
-import com.jack.userservice.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 public class WalletBalanceResponseListener {
-
     private static final Logger logger = LoggerFactory.getLogger(WalletBalanceResponseListener.class);
-    private final UserService userService;
+    private final RedisTemplate<String, WalletBalanceDTO> redisTemplate;
 
-    public WalletBalanceResponseListener(UserService userService) {
-        this.userService = userService;
+    @Value("${app.wallet.cache-prefix}")
+    private String cachePrefix;
+
+    public WalletBalanceResponseListener(RedisTemplate<String, WalletBalanceDTO> redisTemplate) {
+        this.redisTemplate = redisTemplate;
     }
 
     // Listen for the response from wallet-service on the reply-to queue
     @RabbitListener(queues = "${app.wallet.reply-to-queue}")
-    public void handleWalletBalanceResponse(WalletResponseDTO walletResponseDTO) {
-        logger.info("Received wallet balance response for user ID: {}", walletResponseDTO.getUserId());
-
-        // Cache the wallet balance
-        WalletBalanceDTO balanceDTO = new WalletBalanceDTO(walletResponseDTO.getUserId(), walletResponseDTO.getUsdBalance(), walletResponseDTO.getBtcBalance());
-        userService.cacheWalletBalance(balanceDTO);
-
-        logger.info("Cached wallet balance for user ID: {}", walletResponseDTO.getUserId());
+    public void receiveWalletBalance(WalletBalanceDTO walletBalance) {
+        String cacheKey = cachePrefix + walletBalance.getUserId();
+        redisTemplate.opsForValue().set(cacheKey, walletBalance);
+        logger.info("Updated cache for user ID: {} with balance: USD {}, BTC {}",
+                walletBalance.getUserId(), walletBalance.getUsdBalance(), walletBalance.getBtcBalance());
     }
-
 }

@@ -156,11 +156,6 @@ public class UserServiceImpl implements UserService {
         return redisTemplate.opsForValue().get(walletCachePrefix + userId);
     }
 
-    @Override
-    public void cacheWalletBalance(WalletBalanceDTO walletBalance) {
-        redisTemplate.opsForValue().set(walletCachePrefix + walletBalance.getUserId(), walletBalance);
-    }
-
     private Users findUserById(Long id) {
         return usersRepository.findById(id).orElseThrow(() -> {
             logger.error("User with ID: {} not found.", id);

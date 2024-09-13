@@ -23,6 +23,4 @@ public interface UserService {
     boolean verifyPassword(String email, String rawPassword);
 
     WalletBalanceDTO getCachedWalletBalance(Long userId);
-
-    void cacheWalletBalance(WalletBalanceDTO walletBalance);
 }
